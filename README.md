@@ -1,54 +1,47 @@
-# Geiger Family Calendar
+# Family Calendar
 
-A family calendar for the kitchen TV that anyone in the house can update from a phone or computer.
+A family calendar for the kitchen TV that anyone in the house can update from a phone or computer. It runs on a Raspberry Pi plugged into the TV and costs nothing to run.
 
-- **Edit view** (`/`): events, chores, dinner plan, grocery list, school days, countdowns, a family note, and settings.
-- **TV board** (`/tv`): big clock and weather, today's events, school items, dinner and chores, the next six days, countdowns and the grocery list. Dark, glanceable and auto-updating.
-- **Apple Calendar**: add public iCloud calendar links in Settings and their events show up automatically (read-only).
-- **Weather**: from Open-Meteo (free, no key), set to Wolf Lake, IN by default. Change it in Settings.
-- **One family passcode**: no accounts. Each device enters the passcode once and stays signed in.
+- **TV board** (`/tv`): big clock and weather, today's events, school items, dinner and chores, the next six days, countdowns, the family note and the grocery list. Dark, glanceable, and it updates by itself.
+- **Edit view** (`/`): events, chores, dinner plan, grocery list, school days, countdowns, the family note and settings. Works on phones and computers.
+- **Apple Calendar**: add public iCloud calendar links in Settings and their events appear automatically (read-only).
+- **Weather**: from Open-Meteo (free, no key).
+- **One family passcode**: no accounts. Each phone enters it once and stays signed in. The TV itself never asks.
 
-It costs nothing to run: a free Render web service plus a free Neon Postgres database.
+## What you need
 
-## Set it up on Render (free)
+- A Raspberry Pi 4 or 5 kit (power supply, case, microSD card, micro-HDMI to HDMI cable)
+- The TV, a free HDMI port, and your Wi-Fi
 
-1. **Make the free database.** Sign up at [neon.tech](https://neon.tech) (free plan), create a project, and copy its connection string (it starts with `postgresql://`).
-2. **Make the web service.** In the [Render dashboard](https://dashboard.render.com), choose **New → Web Service**, pick this GitHub repo, and use:
-   - Runtime: Node · Build command: `npm install` · Start command: `npm start`
-   - Instance type: **Free**
-3. **Add environment variables** on that service:
-   - `FAMILY_PASSCODE`: the passcode everyone will type once
-   - `DATABASE_URL`: the Neon connection string
-   - `FAMILY_TZ`: `America/Indiana/Indianapolis` (already the default)
-4. Deploy. Open the `onrender.com` address on your phone, enter the passcode, and you're in. Every push to `main` redeploys automatically.
+## Set up the Pi
 
-On the TV, open the same address with `/tv` on the end, enter the passcode once, and press **Full screen**.
+1. **Prepare the memory card.** On a computer, install [Raspberry Pi Imager](https://www.raspberrypi.com/software/). Choose your Pi model, **Raspberry Pi OS (64-bit)** (the regular one, with desktop), and your microSD card. When it asks about settings, choose **Edit settings** and fill in a username and password, your Wi-Fi name and password, and your time zone. Write the card.
+2. **Start the Pi.** Put the card in the Pi, plug it into the TV with HDMI, then plug in power. Plug a USB keyboard and mouse in for setup (you can unplug them afterwards). Wait for the desktop.
+3. **Run the installer.** Open **Terminal** (the black icon at the top) and paste the install command you were given. It installs everything, asks you to choose the family passcode, and tells you when it's done.
+4. **Restart.** Type `sudo reboot`. From now on the Pi boots straight into the calendar, full screen.
 
-**About the free plan:** Render's free services go to sleep after about 15 minutes with no visitors and take up to a minute to wake. The TV board checks in every few seconds, so while the TV is on the app stays awake. Render's own free Postgres expires after 30 days, which is why the data lives in Neon instead.
+On phones and computers at home, open **http://familycal.local:3000** and enter the passcode. Add it to your home screen (Share → Add to Home Screen on iPhone) so it opens like an app.
 
-## Or run it at home on a Raspberry Pi (also free)
-
-With no `DATABASE_URL`, the app saves everything to `data/family-data.json`.
-
-```bash
-sudo apt install -y nodejs npm   # Node 20 or newer
-git clone <this repo> && cd geiger-family-calendar
-npm install
-FAMILY_PASSCODE=yourcode npm start   # then open http://<pi-name>.local:3000
-```
-
-Phones on your home Wi-Fi can edit it at `http://<pi-name>.local:3000`.
-
-## Getting the Apple Calendar link
+## Apple Calendar link
 
 - **iPhone:** Calendar → **Calendars** → ⓘ next to the calendar → turn on **Public Calendar** → **Share Link…** → copy.
 - **Mac:** Calendar → right-click the calendar → **Share Calendar…** → tick **Public Calendar** → copy the link.
 
 Paste it under **Settings → Apple Calendar** and choose whose color it uses. Anyone with that link can see that calendar, so keep it to this app.
 
-## Local development
+## Good to know
+
+- **Updates:** the Pi checks for a new version every night at 3:30am and installs it. To update right away: `~/family-calendar/deploy/update.sh`.
+- **Your data** lives on the Pi in `~/family-calendar/data/`. Copy that folder somewhere safe now and then if you want a backup.
+- **Settings** (passcode, family names, town) are in `/etc/family-calendar.env`. After changing them, run `sudo systemctl restart family-calendar`.
+- **Editing away from home:** out of the box it works on your home Wi-Fi only. To edit from anywhere for free, install [Tailscale](https://tailscale.com) on the Pi and on your phones.
+- **Something's off?** `sudo systemctl status family-calendar` shows whether the server is running, and `journalctl -u family-calendar -n 50` shows its recent log.
+
+## Running it elsewhere
+
+The server also runs anywhere Node 18+ runs. Set `FAMILY_PASSCODE`, and optionally `DATABASE_URL` (Postgres, for example a free Neon database) instead of the local data file. `render.yaml` describes a free Render web service.
 
 ```bash
 npm install
-FAMILY_PASSCODE=test npm start
+FAMILY_PASSCODE=test npm start   # http://localhost:3000
 ```

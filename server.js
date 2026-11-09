@@ -13,12 +13,13 @@ const PORT = process.env.PORT || 3000;
 const PASSCODE = process.env.FAMILY_PASSCODE || "";
 const TZ = process.env.FAMILY_TZ || "America/Indiana/Indianapolis";
 const COLLECTIONS = new Set(["members", "events", "chores", "meals", "groceries", "school", "countdowns", "board", "feeds", "settings"]);
-const DEFAULT_LOCATION = { label: "Wolf Lake, IN", lat: 41.3328, lon: -85.4958 };
-const DEFAULT_MEMBERS = [
-  ["jillian", "Jillian", "#f26b6b"], ["casey", "Casey", "#4f8ff7"], ["wilson", "Wilson", "#a879f2"],
-  ["mickey", "Mickey", "#3fbf8a"], ["maris", "Maris", "#f5a524"], ["junah", "Junah", "#2fc3d1"],
-  ["asa", "Asa", "#ef6fb4"], ["vance", "Vance", "#9aa86a"],
-];
+// Household and weather location come from the environment (set by the Pi installer), so no family details live in the code.
+const DEFAULT_LOCATION = process.env.FAMILY_LAT && process.env.FAMILY_LON
+  ? { label: process.env.FAMILY_TOWN || "Home", lat: Number(process.env.FAMILY_LAT), lon: Number(process.env.FAMILY_LON) }
+  : null;
+const PALETTE = ["#f26b6b", "#4f8ff7", "#a879f2", "#3fbf8a", "#f5a524", "#2fc3d1", "#ef6fb4", "#9aa86a"];
+const DEFAULT_MEMBERS = String(process.env.FAMILY_MEMBERS || "").split(",").map((n) => n.trim()).filter(Boolean)
+  .map((name, i) => [name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "member" + i, name, PALETTE[i % PALETTE.length]]);
 
 if (!PASSCODE) console.warn("FAMILY_PASSCODE is not set: the app is open to anyone with the link.");
 
@@ -64,6 +65,7 @@ function makeStore() {
   };
 }
 const store = makeStore();
+const BUILD = String(Date.now()); // changes on every restart/update so open screens reload the new app
 let version = Date.now(); // bumps on every write so clients can skip unchanged polls
 
 // ---------------- Auth ----------------
@@ -72,8 +74,11 @@ function readCookie(req, name) {
   const m = (req.headers.cookie || "").split(/;\s*/).find((c) => c.startsWith(name + "="));
   return m ? decodeURIComponent(m.slice(name.length + 1)) : "";
 }
+const TRUST_LOCALHOST = process.env.TRUST_LOCALHOST === "1";
 function authed(req) {
   if (!PASSCODE) return true;
+  // On the Raspberry Pi the TV's own browser connects over loopback, so it never needs the passcode.
+  if (TRUST_LOCALHOST && !req.headers["x-forwarded-for"] && /^(::1|127\.|::ffff:127\.)/.test(req.socket.remoteAddress || "")) return true;
   const t = readCookie(req, "fam");
   return t.length === token.length && crypto.timingSafeEqual(Buffer.from(t), Buffer.from(token));
 }
@@ -109,12 +114,12 @@ function merge(a, b) {
 
 app.get("/api/state", async (req, res, next) => {
   try {
-    if (req.query.since && Number(req.query.since) === version) return res.json({ version, unchanged: true });
+    if (req.query.since && Number(req.query.since) === version) return res.json({ version, build: BUILD, unchanged: true });
     const rows = await store.all();
     const out = {};
     for (const c of COLLECTIONS) out[c] = [];
     for (const r of rows) if (out[r.collection]) out[r.collection].push({ id: r.id, ...r.data });
-    res.json({ version, tz: TZ, data: out });
+    res.json({ version, build: BUILD, tz: TZ, data: out });
   } catch (e) { next(e); }
 });
 app.post("/api/:col", async (req, res, next) => {
@@ -167,6 +172,7 @@ async function getJSON(url) {
 
 async function weather() {
   const loc = (await store.get("settings", "location")) || DEFAULT_LOCATION;
+  if (!loc) return null;
   return cached("weather:" + loc.lat + "," + loc.lon, 20 * 60 * 1000, async () => {
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}` +
       `&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +

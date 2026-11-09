@@ -13,7 +13,7 @@
   const isTV = () => location.pathname.replace(/\/$/, "") === "/tv";
 
   const state = { members: [], events: [], chores: [], meals: {}, note: "", groceries: [], school: [], countdowns: [], feeds: [], location: null, ext: [], weather: null, feedErrors: [], loaded: false };
-  let version = 0;
+  let version = 0, build = "";
 
   // ---------- Server ----------
   async function api(method, url, body) {
@@ -46,6 +46,8 @@
     try {
       const r = await api("GET", `/api/state?since=${version}`);
       failures = 0;
+      if (build && r.build && r.build !== build) { location.reload(); return; }
+      build = r.build || build;
       if (!r.unchanged) { version = r.version; apply(r.data); state.loaded = true; render(); }
       setStatus("Up to date");
     } catch (e) {
@@ -183,7 +185,8 @@
 
     $("feedList").innerHTML = s.feeds.map((f) => { const m = mm[f.who]; const err = s.feedErrors.find((x) => x.id === f.id); return `<div class="item"><span class="dot" style="--c:${esc(m ? m.color : "#ffc857")}"></span><div class="grow"><b>${esc(f.name)}</b><div class="meta">${m ? esc(m.name) : "Whole family"}${err ? ` · <span class="err">Couldn't load: ${esc(err.error)}</span>` : ""}</div></div><button class="btn small danger" type="button" data-delfeed="${esc(f.id)}">Remove</button></div>`; }).join("");
     const w = s.weather;
-    $("locNow").textContent = `Showing weather for ${(s.location && s.location.label) || (w && w.label) || "Wolf Lake, IN"}.`;
+    const place = (s.location && s.location.label) || (w && w.label);
+    $("locNow").textContent = place ? `Showing weather for ${place}.` : "No weather location yet. Search for your town below.";
   }
   function keepSelect(id, html) { const el = $(id), v = el.value; el.innerHTML = html; if ([...el.options].some((o) => o.value === v)) el.value = v; }
 

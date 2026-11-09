@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121a26">
+<title>Geiger Family Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="edit" hidden>
+  <div class="topbar">
+    <div>
+      <h1>Geiger Family Calendar</h1>
+      <div class="sub" id="syncline">Connecting…</div>
+    </div>
+    <button class="btn primary" id="toTv" type="button">Show TV view</button>
+  </div>
+  <div class="banner" id="feedBanner" hidden></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-tab="cal" aria-selected="true" type="button">Calendar</button>
+    <button class="tab" role="tab" data-tab="chores" aria-selected="false" type="button">Chores</button>
+    <button class="tab" role="tab" data-tab="meals" aria-selected="false" type="button">Meals</button>
+    <button class="tab" role="tab" data-tab="groc" aria-selected="false" type="button">Groceries</button>
+    <button class="tab" role="tab" data-tab="school" aria-selected="false" type="button">School</button>
+    <button class="tab" role="tab" data-tab="count" aria-selected="false" type="button">Countdowns</button>
+    <button class="tab" role="tab" data-tab="fam" aria-selected="false" type="button">Family</button>
+    <button class="tab" role="tab" data-tab="note" aria-selected="false" type="button">Note</button>
+    <button class="tab" role="tab" data-tab="settings" aria-selected="false" type="button">Settings</button>
+  </div>
+
+  <section class="panel" data-panel="cal">
+    <form class="card" id="evForm">
+      <h2>Add an event</h2>
+      <label class="f">What<input type="text" id="evTitle" placeholder="Soccer practice, dentist, date night…" required></label>
+      <div class="row">
+        <label class="f">Day<input type="date" id="evDate" required></label>
+        <label class="f">Time (blank = all day)<input type="time" id="evTime"></label>
+      </div>
+      <div class="f" style="font-size:.82rem;font-weight:600;color:var(--muted)">Who</div>
+      <div class="chips" id="evWho"></div>
+      <label class="chip" style="align-self:flex-start"><input type="checkbox" id="evWeekly"> Repeats every week</label>
+      <button class="btn primary" type="submit">Add to calendar</button>
+    </form>
+    <div class="card"><h2>Coming up</h2><div class="list" id="evList"></div></div>
+  </section>
+
+  <section class="panel" data-panel="chores" hidden>
+    <form class="card" id="chForm">
+      <h2>Add a chore</h2>
+      <div class="row">
+        <label class="f">Chore<input type="text" id="chTitle" placeholder="Empty dishwasher" required></label>
+        <label class="f">Who<select id="chWho"></select></label>
+      </div>
+      <div class="f" style="font-size:.82rem;font-weight:600;color:var(--muted)">Which days (none picked = every day)</div>
+      <div class="chips" id="chDays"></div>
+      <button class="btn primary" type="submit">Add chore</button>
+    </form>
+    <div class="card"><h2>Today's chores</h2><div class="list" id="chToday"></div></div>
+    <div class="card"><h2>All chores</h2><div class="list" id="chAll"></div></div>
+  </section>
+
+  <section class="panel" data-panel="meals" hidden>
+    <div class="card"><h2>Dinner plan</h2><p class="empty" style="margin:0">Type a dinner and it saves when you leave the box.</p><div class="list" id="mealList" style="gap:8px"></div></div>
+  </section>
+
+  <section class="panel" data-panel="groc" hidden>
+    <form class="card" id="grForm">
+      <h2>Grocery list</h2>
+      <div class="row"><input type="text" id="grItem" placeholder="Milk, bananas, diapers…" aria-label="Grocery item" required style="flex:3 1 200px"><button class="btn primary" type="submit" style="flex:1 0 auto">Add</button></div>
+      <div class="list" id="grList"></div>
+      <button class="btn ghost small" type="button" id="grClear" style="align-self:flex-start">Clear checked items</button>
+    </form>
+  </section>
+
+  <section class="panel" data-panel="school" hidden>
+    <form class="card" id="scForm">
+      <h2>Add a school item</h2>
+      <p class="empty" style="margin:0">For things that repeat each week, like PE days, library day, late start or lunch from home.</p>
+      <div class="row">
+        <label class="f">Who<select id="scWho"></select></label>
+        <label class="f">What<input type="text" id="scText" placeholder="PE, wear sneakers" required></label>
+      </div>
+      <div class="chips" id="scDays"></div>
+      <button class="btn primary" type="submit">Add</button>
+    </form>
+    <div class="card"><h2>School week</h2><div class="list" id="scList"></div></div>
+  </section>
+
+  <section class="panel" data-panel="count" hidden>
+    <form class="card" id="cdForm">
+      <h2>Add a countdown</h2>
+      <div class="row">
+        <label class="f">Counting down to<input type="text" id="cdTitle" placeholder="Thanksgiving, Mickey's birthday…" required></label>
+        <label class="f">Date<input type="date" id="cdDate" required></label>
+      </div>
+      <button class="btn primary" type="submit">Add countdown</button>
+    </form>
+    <div class="card"><h2>Countdowns</h2><div class="list" id="cdList"></div></div>
+  </section>
+
+  <section class="panel" data-panel="fam" hidden>
+    <form class="card" id="memForm">
+      <h2>Add a family member</h2>
+      <label class="f">Name<input type="text" id="memName" placeholder="Name" required></label>
+      <div class="swatches" id="memColors"></div>
+      <button class="btn primary" type="submit">Add</button>
+    </form>
+    <div class="card"><h2>Household</h2><div class="list" id="memList"></div></div>
+  </section>
+
+  <section class="panel" data-panel="note" hidden>
+    <form class="card" id="noteForm">
+      <h2>Note on the TV</h2>
+      <textarea id="noteText" placeholder="Grandma visits Saturday! Library books due Thursday."></textarea>
+      <div class="row" style="justify-content:flex-start"><button class="btn primary" type="submit" style="flex:0 0 auto">Post note</button><button class="btn ghost" type="button" id="noteClear" style="flex:0 0 auto">Clear</button></div>
+    </form>
+  </section>
+
+  <section class="panel" data-panel="settings" hidden>
+    <form class="card" id="feedForm">
+      <h2>Apple Calendar</h2>
+      <p class="empty" style="margin:0">Events from these calendars show up on the TV automatically (they're read-only here; change them in Apple Calendar).</p>
+      <details class="howto"><summary>How to get the link</summary>
+        <p><b>On iPhone:</b> open Calendar, tap <b>Calendars</b> at the bottom, tap the ⓘ next to the calendar, turn on <b>Public Calendar</b>, then tap <b>Share Link…</b> and copy it.</p>
+        <p><b>On Mac:</b> in Calendar, right-click the calendar in the sidebar, choose <b>Share Calendar…</b>, tick <b>Public Calendar</b>, and copy the link that appears.</p>
+        <p>The link starts with <code>webcal://</code>. Anyone with that link can see that calendar's events, so only share it here.</p>
+      </details>
+      <div class="row">
+        <label class="f">Name<input type="text" id="feedName" placeholder="Jillian's calendar" required></label>
+        <label class="f">Color as<select id="feedWho"></select></label>
+      </div>
+      <label class="f">Calendar link<input type="text" id="feedUrl" placeholder="webcal://p123-caldav.icloud.com/published/2/…" required autocomplete="off" inputmode="url"></label>
+      <button class="btn primary" type="submit">Add calendar</button>
+      <div class="list" id="feedList"></div>
+    </form>
+    <form class="card" id="locForm">
+      <h2>Weather location</h2>
+      <div class="meta" id="locNow"></div>
+      <div class="row"><input type="text" id="locQ" placeholder="Town name" aria-label="Town name" style="flex:3 1 200px"><button class="btn" type="submit" style="flex:1 0 auto">Search</button></div>
+      <div class="list" id="locResults"></div>
+    </form>
+    <div class="card">
+      <h2>On the TV</h2>
+      <p class="empty" style="margin:0">Open this same web address on the TV and add <b>/tv</b> to the end. Enter the family passcode once and it stays signed in.</p>
+    </div>
+  </section>
+</div>
+
+<div id="tv" hidden>
+  <div class="head">
+    <div class="clockwrap">
+      <div>
+        <div class="clock tabular" id="tvClock"></div>
+        <div class="date" id="tvDate"></div>
+      </div>
+      <div class="wx" id="tvWx"></div>
+    </div>
+    <div class="headright">
+      <div class="counts" id="tvCount"></div>
+      <div class="note" id="tvNote" hidden><span class="lbl">Family note</span><span id="tvNoteText"></span></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="today" id="tvToday"></div>
+    <div class="right">
+      <div class="week" id="tvWeek"></div>
+      <div class="groc" id="tvGroc"></div>
+    </div>
+  </div>
+  <div class="tvbar">
+    <button type="button" id="tvFull">Full screen</button>
+    <button type="button" id="tvEdit">Edit</button>
+  </div>
+  <div class="status" id="tvStatus"></div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<div id="login" hidden>
+  <form class="card" id="loginForm">
+    <h1>Geiger Family Calendar</h1>
+    <label class="f">Family passcode<input type="password" id="pass" autocomplete="current-password" required></label>
+    <div class="err" id="loginErr" hidden></div>
+    <button class="btn primary" type="submit">Open calendar</button>
+  </form>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "geiger-family-calendar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Family kitchen-TV calendar with phone editing, Apple Calendar feeds and weather.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "express": "5.1.0",
+    "node-ical": "0.20.1",
+    "pg": "8.16.3"
+  }
+}

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: geiger-family-calendar
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: FAMILY_PASSCODE
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: FAMILY_TZ
+        value: America/Indiana/Indianapolis
